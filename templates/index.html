@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outline PDF Tool</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .document-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .collection-badge {
+            font-size: 0.8rem;
+        }
+        .search-box {
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-file-pdf"></i> Outline PDF Tool
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col">
+                <h2>Deine Outline Dokumente</h2>
+                <p class="text-muted">Wähle ein Dokument aus, um ein PDF zu erstellen</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="input-group search-box">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="searchInput" 
+                        placeholder="Dokument suchen..."
+                    >
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col">
+                <div class="btn-group" role="group" id="collectionFilter">
+                    <button type="button" class="btn btn-outline-primary active" data-collection="all">
+                        Alle
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center my-5" id="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Lädt...</span>
+            </div>
+            <p class="mt-2">Lade Dokumente...</p>
+        </div>
+
+        <div class="row" id="documentsList">
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let allDocuments = [];
+        let allCollections = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCollections();
+            loadDocuments();
+            
+            document.getElementById('searchInput').addEventListener('input', filterDocuments);
+        });
+
+        async function loadCollections() {
+            try {
+                const response = await fetch('/api/collections');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allCollections = data.data;
+                    renderCollectionFilter();
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Collections:', error);
+            }
+        }
+
+        function renderCollectionFilter() {
+            const filterContainer = document.getElementById('collectionFilter');
+            
+            allCollections.forEach(collection => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-primary';
+                btn.dataset.collection = collection.id;
+                btn.textContent = collection.name;
+                btn.onclick = () => filterByCollection(collection.id);
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/api/documents');
+                const data = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    allDocuments = data.data;
+                    renderDocuments(allDocuments);
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Dokumente:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<div class="alert alert-danger">Fehler beim Laden der Dokumente</div>';
+            }
+        }
+
+        function renderDocuments(documents) {
+            const container = document.getElementById('documentsList');
+            container.innerHTML = '';
+
+            if (documents.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Keine Dokumente gefunden
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            documents.forEach(doc => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4 mb-3';
+                
+                const collection = allCollections.find(c => c.id === doc.collectionId);
+                const collectionName = collection ? collection.name : 'Unbekannt';
+                
+                col.innerHTML = `
+                    <div class="card document-card h-100" onclick="openEditor('${doc.id}')">
+                        <div class="card-body">
+                            <h5 class="card-title">${doc.title}</h5>
+                            <p class="card-text text-muted small">
+                                ${doc.text ? doc.text.substring(0, 100) + '...' : 'Kein Inhalt'}
+                            </p>
+                            <span class="badge bg-secondary collection-badge">
+                                ${collectionName}
+                            </span>
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <small class="text-muted">
+                                <i class="bi bi-clock"></i> 
+                                ${new Date(doc.updatedAt).toLocaleDateString('de-DE')}
+                            </small>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(col);
+            });
+        }
+
+        function filterByCollection(collectionId) {
+            currentFilter = collectionId;
+            
+            document.querySelectorAll('#collectionFilter button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.collection === collectionId) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            filterDocuments();
+        }
+
+        function filterDocuments() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = allDocuments;
+            
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(doc => doc.collectionId === currentFilter);
+            }
+            
+            if (searchTerm) {
+                filtered = filtered.filter(doc => 
+                    doc.title.toLowerCase().includes(searchTerm) ||
+                    (doc.text && doc.text.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            renderDocuments(filtered);
+        }
+
+        function openEditor(docId) {
+            window.location.href = `/editor/${docId}`;
+        }
+    </script>
+</body>
+</html>

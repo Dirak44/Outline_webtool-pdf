@@ -1,0 +1,10 @@
+# Ausgangslage
+
+
+# Anforderung
+
+
+# Konzept / Architektur
+
+
+\
