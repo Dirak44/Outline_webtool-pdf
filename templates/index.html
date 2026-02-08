@@ -45,18 +45,26 @@
             </div>
         </div>
 
-        <div class="row mb-4">
+        <div class="row mb-4 align-items-center">
             <div class="col">
                 <div class="input-group search-box">
                     <span class="input-group-text">
                         <i class="bi bi-search"></i>
                     </span>
-                    <input 
-                        type="text" 
-                        class="form-control" 
-                        id="searchInput" 
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="searchInput"
                         placeholder="Dokument suchen..."
                     >
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showEmptyToggle">
+                    <label class="form-check-label text-muted small" for="showEmptyToggle">
+                        Leere Seiten anzeigen
+                    </label>
                 </div>
             </div>
         </div>
@@ -88,12 +96,17 @@
         let allDocuments = [];
         let allCollections = [];
         let currentFilter = 'all';
+        let showEmptyDocs = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             loadCollections();
             loadDocuments();
             
             document.getElementById('searchInput').addEventListener('input', filterDocuments);
+            document.getElementById('showEmptyToggle').addEventListener('change', function() {
+                showEmptyDocs = this.checked;
+                filterDocuments();
+            });
         });
 
         async function loadCollections() {
@@ -133,7 +146,7 @@
                 
                 if (data.success) {
                     allDocuments = data.data;
-                    renderDocuments(allDocuments);
+                    filterDocuments();
                 }
             } catch (error) {
                 console.error('Fehler beim Laden der Dokumente:', error);
@@ -160,14 +173,17 @@
             documents.forEach(doc => {
                 const col = document.createElement('div');
                 col.className = 'col-md-6 col-lg-4 mb-3';
-                
+
                 const collection = allCollections.find(c => c.id === doc.collectionId);
                 const collectionName = collection ? collection.name : 'Unbekannt';
-                
+                const empty = isDocumentEmpty(doc);
+                const emptyBadge = empty ? '<span class="badge bg-warning text-dark ms-2">Leer</span>' : '';
+                const cardOpacity = empty ? 'opacity: 0.6;' : '';
+
                 col.innerHTML = `
-                    <div class="card document-card h-100" onclick="openEditor('${doc.id}')">
+                    <div class="card document-card h-100" style="${cardOpacity}" onclick="openEditor('${doc.id}')">
                         <div class="card-body">
-                            <h5 class="card-title">${doc.title}</h5>
+                            <h5 class="card-title">${doc.title}${emptyBadge}</h5>
                             <p class="card-text text-muted small">
                                 ${doc.text ? doc.text.substring(0, 100) + '...' : 'Kein Inhalt'}
                             </p>
@@ -177,13 +193,13 @@
                         </div>
                         <div class="card-footer bg-white border-top-0">
                             <small class="text-muted">
-                                <i class="bi bi-clock"></i> 
+                                <i class="bi bi-clock"></i>
                                 ${new Date(doc.updatedAt).toLocaleDateString('de-DE')}
                             </small>
                         </div>
                     </div>
                 `;
-                
+
                 container.appendChild(col);
             });
         }
@@ -201,22 +217,38 @@
             filterDocuments();
         }
 
+        function isDocumentEmpty(doc) {
+            // Dokument gilt als leer wenn es keinen Text-Inhalt hat
+            // (nur als Eltern-Seite fuer verschachtelte Dokumente verwendet)
+            if (!doc.text) return true;
+            var trimmed = doc.text.trim();
+            if (trimmed.length === 0) return true;
+            // Nur Whitespace oder sehr kurzer Inhalt (z.B. nur "\n" oder Leerzeichen)
+            if (trimmed.replace(/\s+/g, '').length === 0) return true;
+            return false;
+        }
+
         function filterDocuments() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
+
             let filtered = allDocuments;
-            
+
+            // Leere Dokumente ausblenden (Standard: aus)
+            if (!showEmptyDocs) {
+                filtered = filtered.filter(doc => !isDocumentEmpty(doc));
+            }
+
             if (currentFilter !== 'all') {
                 filtered = filtered.filter(doc => doc.collectionId === currentFilter);
             }
-            
+
             if (searchTerm) {
-                filtered = filtered.filter(doc => 
+                filtered = filtered.filter(doc =>
                     doc.title.toLowerCase().includes(searchTerm) ||
                     (doc.text && doc.text.toLowerCase().includes(searchTerm))
                 );
             }
-            
+
             renderDocuments(filtered);
         }
 

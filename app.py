@@ -1,6 +1,11 @@
 """
 FastAPI App - Outline PDF Tool
 """
+import logging
+import re
+import time
+from urllib.parse import urlparse, unquote
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,6 +17,14 @@ import requests
 
 from modules.outline_client import OutlineClient
 
+# ===== LOGGING SETUP =====
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger("outline-pdf")
+
 app = FastAPI(title="Outline PDF Tool")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -19,51 +32,126 @@ templates = Jinja2Templates(directory="templates")
 
 outline_client = OutlineClient()
 
+# ===== VALIDIERUNG =====
+UUID_PATTERN = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE
+)
+
+
+def validate_doc_id(doc_id: str) -> str:
+    """Validiert dass doc_id ein gueltiges UUID-Format hat"""
+    doc_id = doc_id.strip()
+    if not UUID_PATTERN.match(doc_id):
+        logger.warning(f"Ungueltige Document ID: {doc_id}")
+        raise HTTPException(status_code=400, detail="Ungueltige Document ID")
+    return doc_id
+
+
+def validate_proxy_url(url: str, allowed_base: str) -> str:
+    """Validiert und bereinigt die Proxy-URL gegen SSRF und Path Traversal"""
+    url = unquote(url).strip()
+
+    # Path Traversal verhindern
+    if '..' in url or '\x00' in url:
+        logger.warning(f"Path Traversal Versuch erkannt: {url}")
+        raise HTTPException(status_code=400, detail="Ungueltige URL")
+
+    # Nur relative Outline-Pfade oder URLs die mit der Outline-Base beginnen
+    if url.startswith("/"):
+        # Relative URL: nur bestimmte API-Pfade erlauben
+        if not url.startswith("/api/"):
+            logger.warning(f"Unerlaubter relativer Pfad: {url}")
+            raise HTTPException(status_code=400, detail="Nur /api/ Pfade erlaubt")
+        return allowed_base + url
+
+    if url.startswith(allowed_base):
+        parsed = urlparse(url)
+        allowed_parsed = urlparse(allowed_base)
+        # Host muss exakt matchen (kein evil.com?outline.com Trick)
+        if parsed.hostname != allowed_parsed.hostname:
+            logger.warning(f"Host mismatch: {parsed.hostname} != {allowed_parsed.hostname}")
+            raise HTTPException(status_code=400, detail="Nur Outline-URLs erlaubt")
+        return url
+
+    logger.warning(f"URL nicht erlaubt: {url}")
+    raise HTTPException(status_code=400, detail="Nur Outline-URLs erlaubt")
+
+
+# ===== REQUEST LOGGING MIDDLEWARE =====
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = round((time.time() - start_time) * 1000)
+
+    # Nur API- und Editor-Requests loggen (nicht static files)
+    path = request.url.path
+    if path.startswith("/api/") or path.startswith("/editor/"):
+        logger.info(f"{request.method} {path} -> {response.status_code} ({duration}ms)")
+
+    return response
+
+
+# ===== ENDPOINTS =====
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
 @app.get("/api/collections")
 async def get_collections():
     try:
-        print("\n[ENDPOINT] /api/collections aufgerufen")
+        logger.info("Lade Collections...")
         collections = outline_client.get_collections()
-        print(f"[ENDPOINT] Erfolgreich {len(collections)} Collections geladen")
+        logger.info(f"{len(collections)} Collections geladen")
         return {"success": True, "data": collections}
     except Exception as e:
-        print(f"[ENDPOINT ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Fehler beim Laden der Collections: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/documents")
 async def get_documents(collection_id: Optional[str] = None):
     try:
-        print(f"\n[ENDPOINT] /api/documents aufgerufen (collection_id={collection_id})")
+        # Collection ID validieren falls angegeben
+        if collection_id:
+            collection_id = validate_doc_id(collection_id)
+
+        logger.info(f"Lade Dokumente (collection_id={collection_id})")
         documents = outline_client.get_documents(collection_id)
-        print(f"[ENDPOINT] Erfolgreich {len(documents)} Dokumente geladen")
+        logger.info(f"{len(documents)} Dokumente geladen")
         return {"success": True, "data": documents}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[ENDPOINT ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Fehler beim Laden der Dokumente: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/document/{doc_id}")
 async def get_document(doc_id: str):
     try:
+        doc_id = validate_doc_id(doc_id)
+        logger.info(f"Lade Dokument: {doc_id}")
         document = outline_client.get_document(doc_id)
+        logger.info(f"Dokument geladen: {document.get('title', 'Unbekannt')}")
         return {"success": True, "data": document}
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Fehler beim Laden von Dokument {doc_id}: {e}", exc_info=True)
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/editor/{doc_id}", response_class=HTMLResponse)
 async def editor_page(request: Request, doc_id: str):
     try:
+        doc_id = validate_doc_id(doc_id)
+        logger.info(f"Editor geoeffnet fuer Dokument: {doc_id}")
         document = outline_client.get_document(doc_id)
+        logger.info(f"Editor: Dokument '{document.get('title', 'Unbekannt')}' geladen")
         return templates.TemplateResponse(
             "editor.html",
             {
@@ -72,34 +160,61 @@ async def editor_page(request: Request, doc_id: str):
                 "doc_id": doc_id
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Fehler beim Oeffnen des Editors fuer {doc_id}: {e}", exc_info=True)
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/api/image-proxy")
 async def image_proxy(url: str):
-    """Proxy für Outline-Bilder (benötigt Auth-Header)"""
+    """Proxy fuer Outline-Bilder (benoetigt Auth-Header)"""
     outline_url = outline_client.base_url
-    if not url.startswith(outline_url) and not url.startswith("/"):
-        raise HTTPException(status_code=400, detail="Nur Outline-URLs erlaubt")
 
-    if url.startswith("/"):
-        url = outline_url + url
+    # URL validieren
+    validated_url = validate_proxy_url(url, outline_url)
+    logger.info(f"Image-Proxy: Lade Bild von {validated_url[:80]}...")
 
     try:
         headers = {"Authorization": f"Bearer {outline_client.api_token}"}
-        response = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
+        response = requests.get(validated_url, headers=headers, allow_redirects=True, timeout=15)
         response.raise_for_status()
 
         content_type = response.headers.get("Content-Type", "image/png")
+
+        # Nur Bild-Content-Types erlauben
+        allowed_types = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"]
+        if not any(ct in content_type for ct in allowed_types):
+            logger.warning(f"Image-Proxy: Unerlaubter Content-Type: {content_type}")
+            raise HTTPException(status_code=400, detail=f"Kein Bild-Format: {content_type}")
+
+        # Maximale Groesse: 20MB
+        content_length = len(response.content)
+        if content_length > 20 * 1024 * 1024:
+            logger.warning(f"Image-Proxy: Bild zu gross: {content_length} bytes")
+            raise HTTPException(status_code=413, detail="Bild zu gross (max 20MB)")
+
+        logger.info(f"Image-Proxy: Bild geladen ({content_length} bytes, {content_type})")
         return StreamingResponse(
             io.BytesIO(response.content),
             media_type=content_type
         )
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Image-Proxy Fehler: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Bild konnte nicht geladen werden: {e}")
 
 
 if __name__ == "__main__":
     import uvicorn
+    from startup_check import run_startup_checks
+
+    # Selbsttest vor dem Start
+    if not run_startup_checks():
+        import sys
+        sys.exit(1)
+
+    logger.info("Server startet auf http://127.0.0.1:8000")
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)

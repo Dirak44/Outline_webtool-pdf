@@ -14,24 +14,24 @@
         }
         .style-panel {
             background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
+            border-radius: 10px;
+            padding: 24px 28px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            min-height: calc(100vh - 100px);
         }
         .preview-container {
             background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             min-height: 600px;
         }
         .preview-iframe {
             width: 100%;
-            height: 700px;
+            height: calc(100vh - 200px);
+            min-height: 600px;
             border: 1px solid #dee2e6;
-            border-radius: 4px;
+            border-radius: 6px;
         }
         .style-preset {
             cursor: pointer;
@@ -57,9 +57,9 @@
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-4">
+    <div class="container-fluid px-4">
+        <div class="row g-4">
+            <div class="col-lg-5 col-xl-4">
                 <div class="style-panel">
                     <h4 class="mb-4">
                         <i class="bi bi-palette"></i> PDF Styling
@@ -124,6 +124,54 @@
 
                         <hr>
 
+                        <h6 class="fw-bold"><i class="bi bi-type-h1"></i> Ueberschriften</h6>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small mb-1">H1 Titel</label>
+                                <select class="form-select form-select-sm" id="h1Size">
+                                    <option value="18">18pt</option>
+                                    <option value="20">20pt</option>
+                                    <option value="22" selected>22pt</option>
+                                    <option value="24">24pt</option>
+                                    <option value="26">26pt</option>
+                                    <option value="28">28pt</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">H2 Abschnitt</label>
+                                <select class="form-select form-select-sm" id="h2Size">
+                                    <option value="14">14pt</option>
+                                    <option value="16">16pt</option>
+                                    <option value="18" selected>18pt</option>
+                                    <option value="20">20pt</option>
+                                    <option value="22">22pt</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">H3 Unter-Abschnitt</label>
+                                <select class="form-select form-select-sm" id="h3Size">
+                                    <option value="12">12pt</option>
+                                    <option value="13">13pt</option>
+                                    <option value="15" selected>15pt</option>
+                                    <option value="16">16pt</option>
+                                    <option value="18">18pt</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">H4 Klein</label>
+                                <select class="form-select form-select-sm" id="h4Size">
+                                    <option value="11">11pt</option>
+                                    <option value="12">12pt</option>
+                                    <option value="13" selected>13pt</option>
+                                    <option value="14">14pt</option>
+                                    <option value="15">15pt</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr>
+
                         <h6 class="fw-bold"><i class="bi bi-layout-text-sidebar"></i> Optionen</h6>
 
                         <div class="form-check form-switch mb-2">
@@ -168,7 +216,7 @@
                 </div>
             </div>
 
-            <div class="col-md-8">
+            <div class="col-lg-7 col-xl-8">
                 <div class="preview-container">
                     <h4 class="mb-3">
                         <i class="bi bi-file-pdf"></i> Vorschau
@@ -370,6 +418,12 @@
                 var showPageNumbers = document.getElementById('footerPageNumbers').checked;
                 var showDocTitle = document.getElementById('footerTitle').checked;
 
+                // Ueberschriften-Groessen
+                var h1Size = parseInt(document.getElementById('h1Size').value);
+                var h2Size = parseInt(document.getElementById('h2Size').value);
+                var h3Size = parseInt(document.getElementById('h3Size').value);
+                var h4Size = parseInt(document.getElementById('h4Size').value);
+
                 // Markdown verarbeiten
                 var md = normalizeMarkdown(documentMarkdown);
                 md = rewriteImageUrls(md);
@@ -384,11 +438,11 @@
                 // HTML zu pdfmake (Roboto ist der Standard-Font in pdfmake)
                 var pdfContent = htmlToPdfmake(html, {
                     defaultStyles: {
-                        h1: { fontSize: 22, bold: true, marginBottom: 6, marginTop: 16 },
-                        h2: { fontSize: 18, bold: true, marginBottom: 5, marginTop: 14 },
-                        h3: { fontSize: 15, bold: true, marginBottom: 4, marginTop: 12 },
-                        h4: { fontSize: 13, bold: true, marginBottom: 3, marginTop: 10 },
-                        h5: { fontSize: 12, bold: true, marginBottom: 2, marginTop: 8 },
+                        h1: { fontSize: h1Size, bold: true, marginBottom: 6, marginTop: 16 },
+                        h2: { fontSize: h2Size, bold: true, marginBottom: 5, marginTop: 14 },
+                        h3: { fontSize: h3Size, bold: true, marginBottom: 4, marginTop: 12 },
+                        h4: { fontSize: h4Size, bold: true, marginBottom: 3, marginTop: 10 },
+                        h5: { fontSize: h4Size - 1, bold: true, marginBottom: 2, marginTop: 8 },
                         h6: { fontSize: 11, bold: true, marginBottom: 2, marginTop: 8 },
                         p: { marginBottom: 4, marginTop: 2 },
                         li: { marginBottom: 2 },
@@ -494,12 +548,12 @@
                             bold: true,
                             margin: [0, 0, 0, 15]
                         },
-                        'html-h1': { fontSize: 22, bold: true, margin: [0, 16, 0, 6] },
-                        'html-h2': { fontSize: 18, bold: true, margin: [0, 14, 0, 5] },
-                        'html-h3': { fontSize: 15, bold: true, margin: [0, 12, 0, 4] },
-                        'html-h4': { fontSize: 13, bold: true, margin: [0, 10, 0, 3] },
-                        'html-h5': { fontSize: 12, bold: true, margin: [0, 8, 0, 2] },
-                        'html-h6': { fontSize: 11, bold: true, margin: [0, 8, 0, 2] }
+                        'html-h1': { fontSize: h1Size, bold: true, margin: [0, 16, 0, 6] },
+                        'html-h2': { fontSize: h2Size, bold: true, margin: [0, 14, 0, 5] },
+                        'html-h3': { fontSize: h3Size, bold: true, margin: [0, 12, 0, 4] },
+                        'html-h4': { fontSize: h4Size, bold: true, margin: [0, 10, 0, 3] },
+                        'html-h5': { fontSize: h4Size - 1, bold: true, margin: [0, 8, 0, 2] },
+                        'html-h6': { fontSize: h4Size - 2, bold: true, margin: [0, 8, 0, 2] }
                     }
                 };
 
@@ -614,6 +668,12 @@
                 if (regenerateTimer) clearTimeout(regenerateTimer);
                 regenerateTimer = setTimeout(function() { generatePDF(); }, 800);
             });
+
+            // Ueberschriften-Groessen
+            document.getElementById('h1Size').addEventListener('change', scheduleRegenerate);
+            document.getElementById('h2Size').addEventListener('change', scheduleRegenerate);
+            document.getElementById('h3Size').addEventListener('change', scheduleRegenerate);
+            document.getElementById('h4Size').addEventListener('change', scheduleRegenerate);
 
             // Sofort generieren beim Laden
             generatePDF();

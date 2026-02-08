@@ -4,7 +4,11 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(tasklist:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git config:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python startup_check.py:*)"
     ]
   }
 }
