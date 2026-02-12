@@ -1,0 +1,144 @@
+/* Dark/Light Mode - Automatisch via System-Einstellung, manuell umschaltbar */
+
+:root {
+    --bg-primary: #f8f9fa;
+    --bg-card: #ffffff;
+    --bg-navbar: #0d6efd;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+    --shadow: rgba(0, 0, 0, 0.08);
+    --shadow-hover: rgba(0, 0, 0, 0.15);
+    --input-bg: #ffffff;
+    --card-footer-bg: #ffffff;
+    --badge-bg: #6c757d;
+    --alert-info-bg: #cff4fc;
+    --alert-info-text: #055160;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1d21;
+    --bg-card: #2b2f35;
+    --bg-navbar: #1e3a5f;
+    --text-primary: #e9ecef;
+    --text-secondary: #adb5bd;
+    --border-color: #495057;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-hover: rgba(0, 0, 0, 0.5);
+    --input-bg: #343a40;
+    --card-footer-bg: #2b2f35;
+    --badge-bg: #495057;
+    --alert-info-bg: #1a3a4a;
+    --alert-info-text: #8ecae6;
+}
+
+body {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--bg-navbar) !important;
+    transition: background-color 0.3s;
+}
+
+/* Karten und Panels */
+.card, .style-panel, .preview-container {
+    background: var(--bg-card) !important;
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.card-footer {
+    background-color: var(--card-footer-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Text */
+[data-theme="dark"] .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .card-title {
+    color: var(--text-primary);
+}
+
+/* Formular-Elemente */
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Labels */
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .form-check-label,
+[data-theme="dark"] label,
+[data-theme="dark"] h4, [data-theme="dark"] h6 {
+    color: var(--text-primary) !important;
+}
+
+/* Badges */
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: var(--badge-bg) !important;
+}
+
+/* Alerts */
+[data-theme="dark"] .alert-info {
+    background-color: var(--alert-info-bg);
+    color: var(--alert-info-text);
+    border-color: var(--border-color);
+}
+
+/* Trennlinien */
+[data-theme="dark"] hr {
+    border-color: var(--border-color);
+    opacity: 0.3;
+}
+
+/* Input Group */
+[data-theme="dark"] .input-group-text {
+    background-color: var(--input-bg);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+/* Collection Filter Buttons */
+[data-theme="dark"] .btn-outline-primary {
+    color: #8ecae6;
+    border-color: #8ecae6;
+}
+[data-theme="dark"] .btn-outline-primary:hover,
+[data-theme="dark"] .btn-outline-primary.active {
+    background-color: #1e3a5f;
+    color: #ffffff;
+    border-color: #8ecae6;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.5);
+    color: white;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: border-color 0.2s;
+}
+.theme-toggle:hover {
+    border-color: white;
+}
+
+/* Preview iframe */
+[data-theme="dark"] .preview-iframe {
+    border-color: var(--border-color) !important;
+}

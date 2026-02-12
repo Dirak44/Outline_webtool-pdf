@@ -1,14 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(netstat:*)",
-      "Bash(findstr:*)",
-      "Bash(tasklist:*)",
-      "Bash(taskkill:*)",
-      "Bash(git config:*)",
-      "Bash(pip install:*)",
-      "Bash(python -m pytest:*)",
-      "Bash(python startup_check.py:*)"
+      "Bash(^d \")",
+      "Bash(git -C \"C:\\\\Repos\\\\Outline_webtool-pdf\" log --oneline -20)",
+      "Bash(git add app.py modules/outline_client.py requirements.txt templates/index.html templates/editor.html startup_check.py CLAUDE.md TODO.md data/templates.json static/css/theme.css static/js/theme.js tests/__init__.py tests/test_app.py)",
+      "Bash(python app.py:*)",
+      "Bash(git stash:*)",
+      "Bash(git pull:*)",
+      "Bash(move:*)",
+      "Bash(del \"C:\\\\Repos\\\\Outline_webtool-pdf\\\\__pycache__\\\\startup_check.cpython-313.pyc\")",
+      "Bash(python -m pytest:*)"
     ]
   }
 }

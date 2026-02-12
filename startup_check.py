@@ -18,6 +18,8 @@ def run_startup_checks():
         ("Datei: templates/editor.html", lambda: check_file("templates/editor.html")),
         ("Ordner: static/", lambda: check_dir("static")),
         ("Ordner: modules/", lambda: check_dir("modules")),
+        ("Datei: data/templates.json", lambda: check_file("data/templates.json")),
+        ("Vorlagen: Reset-Check", check_templates_reset),
         ("Modul: outline_client", check_outline_client_import),
         ("Verbindung: Outline API", check_outline_connection),
     ]
@@ -93,6 +95,56 @@ def check_file(path):
 def check_dir(path):
     if not os.path.isdir(path):
         raise FileNotFoundError(f"Ordner nicht gefunden: {path}")
+    return True
+
+
+DEFAULT_TEMPLATES = {
+    "templates": [
+        {
+            "id": "default",
+            "name": "Standard",
+            "icon": "bi-file-text",
+            "font": "Roboto",
+            "fontsize": "11",
+            "margin": "70.9",
+            "builtin": True,
+        },
+        {
+            "id": "formal",
+            "name": "Formell",
+            "icon": "bi-briefcase",
+            "font": "Roboto",
+            "fontsize": "12",
+            "margin": "85",
+            "builtin": True,
+        },
+        {
+            "id": "minimal",
+            "name": "Minimal",
+            "icon": "bi-file-earmark",
+            "font": "Roboto",
+            "fontsize": "10",
+            "margin": "42.5",
+            "builtin": True,
+        },
+    ]
+}
+
+
+def check_templates_reset():
+    """Prueft ob Vorlagen beim Start zurueckgesetzt werden sollen (RESET_TEMPLATES_ON_START)"""
+    import json
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    reset = os.getenv("RESET_TEMPLATES_ON_START", "false").lower().strip()
+    templates_path = os.path.join("data", "templates.json")
+
+    if reset == "true":
+        with open(templates_path, "w", encoding="utf-8") as f:
+            json.dump(DEFAULT_TEMPLATES, f, indent=4, ensure_ascii=False)
+        return "Vorlagen zurueckgesetzt (RESET_TEMPLATES_ON_START=true)"
+
     return True
 
 

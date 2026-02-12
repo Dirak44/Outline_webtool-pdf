@@ -1,0 +1,31 @@
+{
+    "templates": [
+        {
+            "id": "default",
+            "name": "Standard",
+            "icon": "bi-file-text",
+            "font": "Roboto",
+            "fontsize": "11",
+            "margin": "70.9",
+            "builtin": true
+        },
+        {
+            "id": "formal",
+            "name": "Formell",
+            "icon": "bi-briefcase",
+            "font": "Roboto",
+            "fontsize": "12",
+            "margin": "85",
+            "builtin": true
+        },
+        {
+            "id": "minimal",
+            "name": "Minimal",
+            "icon": "bi-file-earmark",
+            "font": "Roboto",
+            "fontsize": "10",
+            "margin": "42.5",
+            "builtin": true
+        }
+    ]
+}

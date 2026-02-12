@@ -44,20 +44,37 @@ class OutlineClient:
             raise
 
     def get_documents(self, collection_id: Optional[str] = None) -> List[Dict]:
-        """Hole alle Dokumente aus Outline"""
+        """
+        Hole ALLE Dokumente aus Outline (mit Pagination).
+        Die Outline API gibt max. 25 Dokumente pro Request zurueck.
+        """
         url = f"{self.base_url}/api/documents.list"
-        payload = {}
-        if collection_id:
-            payload["collectionId"] = collection_id
+        all_docs = []
+        offset = 0
+        limit = 25
 
         try:
-            logger.debug(f"API Request: POST {url} (payload={payload})")
-            resp = requests.post(url, headers=self.headers, json=payload, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            docs = data.get("data", [])
-            logger.info(f"Dokumente geladen: {len(docs)} Stueck (collection={collection_id})")
-            return docs
+            while True:
+                payload = {"offset": offset, "limit": limit}
+                if collection_id:
+                    payload["collectionId"] = collection_id
+
+                logger.debug(f"API Request: POST {url} (offset={offset})")
+                resp = requests.post(url, headers=self.headers, json=payload, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+
+                docs = data.get("data", [])
+                all_docs.extend(docs)
+                logger.debug(f"Seite geladen: {len(docs)} Dokumente (gesamt: {len(all_docs)})")
+
+                if len(docs) < limit:
+                    break
+
+                offset += limit
+
+            logger.info(f"Alle Dokumente geladen: {len(all_docs)} (collection={collection_id})")
+            return all_docs
         except requests.exceptions.RequestException as e:
             logger.error(f"Fehler beim Laden der Dokumente: {e}")
             raise

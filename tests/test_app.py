@@ -1,8 +1,9 @@
 """
 Unit Tests fuer Outline PDF Tool
-Testet Validierung, URL-Pruefung und API-Endpoints
+Testet Validierung, URL-Pruefung, API-Endpoints, Templates und Startup
 """
 import pytest
+import json
 import sys
 import os
 
@@ -163,6 +164,87 @@ class TestAPIEndpoints:
         assert response.status_code == 400
 
 
+# ===== TEMPLATE CRUD TESTS =====
+
+class TestTemplateCRUD:
+    """Tests fuer Template Erstellen/Lesen/Bearbeiten/Loeschen"""
+
+    def setup_method(self):
+        from app import app
+        self.client = TestClient(app)
+
+    def test_templates_laden(self):
+        """GET /api/templates muss Vorlagen zurueckgeben"""
+        response = self.client.get("/api/templates")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert isinstance(data["data"], list)
+        assert len(data["data"]) >= 3  # Mindestens 3 Builtin-Vorlagen
+
+    def test_builtin_vorlagen_vorhanden(self):
+        """Standard, Formell, Minimal muessen existieren"""
+        response = self.client.get("/api/templates")
+        data = response.json()
+        names = [t["name"] for t in data["data"]]
+        assert "Standard" in names
+        assert "Formell" in names
+        assert "Minimal" in names
+
+    def test_template_erstellen(self):
+        """POST /api/templates - Neue Vorlage erstellen"""
+        response = self.client.post("/api/templates", json={
+            "name": "Test-Vorlage",
+            "icon": "bi-star",
+            "font": "Roboto",
+            "fontsize": "14",
+            "margin": "56.7"
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["name"] == "Test-Vorlage"
+        assert data["data"]["builtin"] is False
+        # Aufraeumen
+        self.client.delete(f"/api/templates/{data['data']['id']}")
+
+    def test_template_loeschen(self):
+        """DELETE /api/templates/{id} - Custom Vorlage loeschen"""
+        # Erst erstellen
+        resp = self.client.post("/api/templates", json={
+            "name": "Zum-Loeschen",
+            "font": "Roboto",
+            "fontsize": "10",
+            "margin": "42.5"
+        })
+        template_id = resp.json()["data"]["id"]
+        # Dann loeschen
+        response = self.client.delete(f"/api/templates/{template_id}")
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_builtin_nicht_loeschbar(self):
+        """Builtin-Vorlagen duerfen nicht geloescht werden"""
+        response = self.client.delete("/api/templates/default")
+        assert response.status_code == 400
+        assert "Builtin" in response.json()["detail"]
+
+    def test_builtin_nicht_editierbar(self):
+        """Builtin-Vorlagen duerfen nicht bearbeitet werden"""
+        response = self.client.put("/api/templates/default", json={
+            "name": "Gehackt",
+            "font": "Roboto",
+            "fontsize": "10",
+            "margin": "42.5"
+        })
+        assert response.status_code == 400
+
+    def test_template_nicht_gefunden(self):
+        """Loeschen einer nicht existierenden Vorlage"""
+        response = self.client.delete("/api/templates/gibts-nicht-xyz")
+        assert response.status_code == 404
+
+
 # ===== STARTUP SELF-TEST =====
 
 class TestStartupChecks:
@@ -194,6 +276,16 @@ class TestStartupChecks:
     def test_modules_vorhanden(self):
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         assert os.path.isfile(os.path.join(base, "modules", "outline_client.py")), "modules/outline_client.py fehlt"
+
+    def test_data_templates_json_vorhanden(self):
+        """data/templates.json muss existieren"""
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(base, "data", "templates.json")
+        assert os.path.isfile(path), "data/templates.json fehlt"
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        assert "templates" in data
+        assert len(data["templates"]) >= 3
 
     def test_outline_client_import(self):
         """OutlineClient muss importierbar sein"""

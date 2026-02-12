@@ -4,14 +4,17 @@ FastAPI App - Outline PDF Tool
 import logging
 import re
 import time
+import json
+import uuid
+import os
 from urllib.parse import urlparse, unquote
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from typing import Optional
-import os
 import io
 import requests
 
@@ -31,6 +34,28 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 outline_client = OutlineClient()
+
+# ===== TEMPLATES (JSON) =====
+TEMPLATES_FILE = os.path.join("data", "templates.json")
+
+
+def load_templates():
+    with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_templates(data):
+    with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+class TemplateRequest(BaseModel):
+    name: str
+    icon: Optional[str] = "bi-file-text"
+    font: str
+    fontsize: str
+    margin: str
+
 
 # ===== VALIDIERUNG =====
 UUID_PATTERN = re.compile(
@@ -207,11 +232,101 @@ async def image_proxy(url: str):
         raise HTTPException(status_code=502, detail=f"Bild konnte nicht geladen werden: {e}")
 
 
+@app.get("/api/attachments.redirect")
+async def proxy_attachment(id: str):
+    """Proxy fuer Outline Bilder/Attachments - leitet mit Auth-Token weiter."""
+    try:
+        outline_url = outline_client.base_url
+        url = f"{outline_url}/api/attachments.redirect?id={id}"
+        headers = {"Authorization": f"Bearer {outline_client.api_token}"}
+
+        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
+        resp.raise_for_status()
+
+        content_type = resp.headers.get("Content-Type", "application/octet-stream")
+        return Response(content=resp.content, media_type=content_type)
+    except Exception as e:
+        logger.error(f"Attachment Proxy Fehler {id}: {e}")
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden")
+
+
+# ===== TEMPLATE CRUD =====
+
+@app.get("/api/templates")
+async def get_templates():
+    try:
+        data = load_templates()
+        return {"success": True, "data": data["templates"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/templates")
+async def create_template(req: TemplateRequest):
+    try:
+        data = load_templates()
+        new_template = {
+            "id": str(uuid.uuid4())[:8],
+            "name": req.name,
+            "icon": req.icon,
+            "font": req.font,
+            "fontsize": req.fontsize,
+            "margin": req.margin,
+            "builtin": False,
+        }
+        data["templates"].append(new_template)
+        save_templates(data)
+        return {"success": True, "data": new_template}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/templates/{template_id}")
+async def update_template(template_id: str, req: TemplateRequest):
+    try:
+        data = load_templates()
+        for tpl in data["templates"]:
+            if tpl["id"] == template_id:
+                if tpl.get("builtin"):
+                    raise HTTPException(status_code=400, detail="Builtin-Vorlagen koennen nicht bearbeitet werden")
+                tpl["name"] = req.name
+                tpl["icon"] = req.icon
+                tpl["font"] = req.font
+                tpl["fontsize"] = req.fontsize
+                tpl["margin"] = req.margin
+                save_templates(data)
+                return {"success": True, "data": tpl}
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/templates/{template_id}")
+async def delete_template(template_id: str):
+    try:
+        data = load_templates()
+        for tpl in data["templates"]:
+            if tpl["id"] == template_id:
+                if tpl.get("builtin"):
+                    raise HTTPException(status_code=400, detail="Builtin-Vorlagen koennen nicht geloescht werden")
+                data["templates"].remove(tpl)
+                save_templates(data)
+                return {"success": True}
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== SERVER START =====
+
 if __name__ == "__main__":
     import uvicorn
     from startup_check import run_startup_checks
 
-    # Selbsttest vor dem Start
     if not run_startup_checks():
         import sys
         sys.exit(1)
