@@ -66,6 +66,7 @@ data/
 - `GET /api/documents?collection_id=` – Dokumente (optional gefiltert, mit Pagination)
 - `GET /api/document/{id}` – Einzelnes Dokument mit Markdown
 - `GET /editor/{doc_id}` – PDF-Editor Seite
+- `GET /api/search?q=` – Volltextsuche über Outline API
 - `GET /api/image-proxy?url=` – Proxy für Outline-Bilder (Auth)
 - `GET /api/attachments.redirect?id=` – Proxy für Outline Attachments
 - `GET /api/templates` – Alle Vorlagen laden
@@ -103,9 +104,11 @@ data/
 ## Hauptseite Features
 - Dokument-Übersicht mit Karten-Layout
 - Collection-Filter (Buttons)
-- Suchfeld (Titel und Textvorschau)
+- Suchfeld mit Backend-Volltextsuche (ab 2 Zeichen, Debounce 400ms)
 - Leere Dokumente (nur Titel, kein Inhalt) standardmäßig ausgeblendet, per Toggle einblendbar
 - Vollständige Pagination: Lädt ALLE Dokumente (auch Collections mit 50+ Seiten)
+- Favoriten-System: Stern-Button auf Karten, localStorage persistent, Filter-Toggle
+- Batch-Export: Checkboxen zur Mehrfachauswahl, ZIP-Download mit Fortschrittsbalken (JSZip + pdfmake)
 
 ## Custom Vorlagen System
 - 3 Builtin-Vorlagen: Standard, Formell, Minimal (nicht löschbar)

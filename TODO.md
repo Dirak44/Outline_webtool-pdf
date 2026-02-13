@@ -19,10 +19,11 @@
 - [x] Custom Template System (erstellen/bearbeiten/loeschen) mit JSON Storage
 - [x] .env Option RESET_TEMPLATES_ON_START zum Zuruecksetzen der Vorlagen beim Start abschaltbar
 - [x] Unit Tests (33+ Tests: Security, Validierung, Endpoints, Templates, Startup)
+- [x] Schriftart-Auswahl im Editor (Roboto, Helvetica, Times New Roman, Courier)
+- [x] Backend-Volltextsuche ueber Outline API in Hauptseite integriert
+- [x] PDF-Export: Benutzerdefinierte Kopfzeile (3 Felder: links/mitte/rechts)
+- [x] Favoriten-System fuer Dokumente (localStorage, Stern-Button, Filter)
+- [x] Batch-Export: Mehrere Dokumente als ZIP (Checkboxen, Fortschrittsbalken, JSZip)
 
 ## Offen
-- [ ] Schriftart-Auswahl im Editor (aktuell nur ueber Templates)
-- [ ] Dokumenten-Suche im Backend nutzen (search_documents ist implementiert aber nicht in UI)
-- [ ] PDF-Export: Benutzerdefinierte Kopfzeile
-- [ ] Favoriten-System fuer haeufig genutzte Dokumente
-- [ ] Batch-Export: Mehrere Dokumente gleichzeitig als PDF
+- (keine offenen Tasks)
