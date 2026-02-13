@@ -184,6 +184,49 @@
                         </div>
 
                         <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="headerToggle">
+                            <label class="form-check-label" for="headerToggle">Kopfzeile</label>
+                        </div>
+
+                        <div id="headerOptions" class="ms-4 mb-2" style="display: none;">
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Links</label>
+                                    <select class="form-select form-select-sm" id="headerLeft">
+                                        <option value="">— Leer —</option>
+                                        <option value="author">Autor</option>
+                                        <option value="title">Titel</option>
+                                        <option value="date">Datum</option>
+                                        <option value="custom">Eigener Text</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Mitte</label>
+                                    <select class="form-select form-select-sm" id="headerCenter">
+                                        <option value="">— Leer —</option>
+                                        <option value="author">Autor</option>
+                                        <option value="title" selected>Titel</option>
+                                        <option value="date">Datum</option>
+                                        <option value="custom">Eigener Text</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Rechts</label>
+                                    <select class="form-select form-select-sm" id="headerRight">
+                                        <option value="">— Leer —</option>
+                                        <option value="author">Autor</option>
+                                        <option value="title">Titel</option>
+                                        <option value="date" selected>Datum</option>
+                                        <option value="custom">Eigener Text</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="headerCustomField" class="mb-2" style="display: none;">
+                                <input type="text" class="form-control form-control-sm" id="headerCustomText" placeholder="Eigener Text">
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="footerToggle" checked>
                             <label class="form-check-label" for="footerToggle">Fusszeile</label>
                         </div>
@@ -409,6 +452,11 @@
                 var fontFamily = document.getElementById('fontSelect').value;
                 var marginPt = parseFloat(document.getElementById('marginSelect').value);
                 var showToc = document.getElementById('tocToggle').checked;
+                var showHeader = document.getElementById('headerToggle').checked;
+                var headerLeft = document.getElementById('headerLeft').value;
+                var headerCenter = document.getElementById('headerCenter').value;
+                var headerRight = document.getElementById('headerRight').value;
+                var headerCustomText = document.getElementById('headerCustomText').value;
                 var showFooter = document.getElementById('footerToggle').checked;
                 var showNumbering = document.getElementById('numberingToggle').checked;
                 var footerAuthor = document.getElementById('footerAuthor').value;
@@ -499,6 +547,30 @@
                     content.push(pdfContent);
                 }
 
+                // Hilfsfunktion: Kopfzeilen-Feldwert ermitteln
+                function resolveHeaderField(field, customText) {
+                    if (field === 'author') return footerAuthor || '';
+                    if (field === 'title') return docTitle;
+                    if (field === 'date') return new Date().toLocaleDateString('de-DE');
+                    if (field === 'custom') return customText || '';
+                    return '';
+                }
+
+                // Header-Funktion
+                var headerFn = undefined;
+                if (showHeader) {
+                    headerFn = function() {
+                        return {
+                            columns: [
+                                { text: resolveHeaderField(headerLeft, headerCustomText), alignment: 'left', fontSize: 8, color: '#888', margin: [marginPt, 0, 0, 0] },
+                                { text: resolveHeaderField(headerCenter, headerCustomText), alignment: 'center', fontSize: 8, color: '#888' },
+                                { text: resolveHeaderField(headerRight, headerCustomText), alignment: 'right', fontSize: 8, color: '#888', margin: [0, 0, marginPt, 0] }
+                            ],
+                            margin: [0, marginPt - 10, 0, 0]
+                        };
+                    };
+                }
+
                 // Footer-Funktion
                 var footerFn = undefined;
                 if (showFooter) {
@@ -533,7 +605,8 @@
 
                 var docDefinition = {
                     pageSize: 'A4',
-                    pageMargins: [marginPt, marginPt, marginPt, marginPt + (showFooter ? 20 : 0)],
+                    pageMargins: [marginPt, marginPt + (showHeader ? 20 : 0), marginPt, marginPt + (showFooter ? 20 : 0)],
+                    header: headerFn,
                     footer: footerFn,
                     content: content,
                     defaultStyle: {
@@ -700,6 +773,13 @@
             }
         }
 
+        function updateHeaderCustomField() {
+            var hasCustom = document.getElementById('headerLeft').value === 'custom' ||
+                            document.getElementById('headerCenter').value === 'custom' ||
+                            document.getElementById('headerRight').value === 'custom';
+            document.getElementById('headerCustomField').style.display = hasCustom ? 'block' : 'none';
+        }
+
         function downloadPDF() {
             if (!currentPdfBlob) return;
             var url = URL.createObjectURL(currentPdfBlob);
@@ -731,6 +811,26 @@
             document.getElementById('marginSelect').addEventListener('change', scheduleRegenerate);
             document.getElementById('tocToggle').addEventListener('change', scheduleRegenerate);
             document.getElementById('numberingToggle').addEventListener('change', scheduleRegenerate);
+            document.getElementById('headerToggle').addEventListener('change', function() {
+                document.getElementById('headerOptions').style.display = this.checked ? 'block' : 'none';
+                scheduleRegenerate();
+            });
+            document.getElementById('headerLeft').addEventListener('change', function() {
+                updateHeaderCustomField();
+                scheduleRegenerate();
+            });
+            document.getElementById('headerCenter').addEventListener('change', function() {
+                updateHeaderCustomField();
+                scheduleRegenerate();
+            });
+            document.getElementById('headerRight').addEventListener('change', function() {
+                updateHeaderCustomField();
+                scheduleRegenerate();
+            });
+            document.getElementById('headerCustomText').addEventListener('input', function() {
+                if (regenerateTimer) clearTimeout(regenerateTimer);
+                regenerateTimer = setTimeout(function() { generatePDF(); }, 800);
+            });
             document.getElementById('footerToggle').addEventListener('change', function() {
                 document.getElementById('footerOptions').style.display = this.checked ? 'block' : 'none';
                 scheduleRegenerate();
