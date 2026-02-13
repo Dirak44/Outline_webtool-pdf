@@ -28,6 +28,22 @@
         .search-box {
             max-width: 500px;
         }
+        .favorite-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #ccc;
+            z-index: 2;
+            padding: 2px 6px;
+            line-height: 1;
+        }
+        .favorite-btn:hover, .favorite-btn.active {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +81,12 @@
                 </div>
             </div>
             <div class="col-auto">
+                <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" id="showFavoritesToggle">
+                    <label class="form-check-label text-muted small" for="showFavoritesToggle">
+                        <i class="bi bi-star-fill text-warning"></i> Nur Favoriten
+                    </label>
+                </div>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="showEmptyToggle">
                     <label class="form-check-label text-muted small" for="showEmptyToggle">
@@ -102,7 +124,36 @@
         let allCollections = [];
         let currentFilter = 'all';
         let showEmptyDocs = false;
+        let showOnlyFavorites = false;
         let searchTimer = null;
+
+        // ===== FAVORITEN (localStorage) =====
+        function getFavorites() {
+            try {
+                return JSON.parse(localStorage.getItem('outline-pdf-favorites') || '[]');
+            } catch (e) { return []; }
+        }
+
+        function saveFavorites(favs) {
+            localStorage.setItem('outline-pdf-favorites', JSON.stringify(favs));
+        }
+
+        function isFavorite(docId) {
+            return getFavorites().indexOf(docId) !== -1;
+        }
+
+        function toggleFavorite(docId, event) {
+            event.stopPropagation();
+            var favs = getFavorites();
+            var idx = favs.indexOf(docId);
+            if (idx === -1) {
+                favs.push(docId);
+            } else {
+                favs.splice(idx, 1);
+            }
+            saveFavorites(favs);
+            handleSearch();
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             loadCollections();
@@ -111,6 +162,10 @@
             document.getElementById('searchInput').addEventListener('input', function() {
                 if (searchTimer) clearTimeout(searchTimer);
                 searchTimer = setTimeout(handleSearch, 400);
+            });
+            document.getElementById('showFavoritesToggle').addEventListener('change', function() {
+                showOnlyFavorites = this.checked;
+                handleSearch();
             });
             document.getElementById('showEmptyToggle').addEventListener('change', function() {
                 showEmptyDocs = this.checked;
@@ -188,11 +243,17 @@
                 const empty = isDocumentEmpty(doc);
                 const emptyBadge = empty ? '<span class="badge bg-warning text-dark ms-2">Leer</span>' : '';
                 const cardOpacity = empty ? 'opacity: 0.6;' : '';
+                const fav = isFavorite(doc.id);
+                const favIcon = fav ? 'bi-star-fill' : 'bi-star';
+                const favClass = fav ? ' active' : '';
 
                 col.innerHTML = `
-                    <div class="card document-card h-100" style="${cardOpacity}" onclick="openEditor('${doc.id}')">
+                    <div class="card document-card h-100 position-relative" style="${cardOpacity}" onclick="openEditor('${doc.id}')">
+                        <button class="favorite-btn${favClass}" onclick="toggleFavorite('${doc.id}', event)" title="Favorit">
+                            <i class="bi ${favIcon}"></i>
+                        </button>
                         <div class="card-body">
-                            <h5 class="card-title">${doc.title}${emptyBadge}</h5>
+                            <h5 class="card-title pe-4">${doc.title}${emptyBadge}</h5>
                             <p class="card-text text-muted small">
                                 ${doc.text ? doc.text.substring(0, 100) + '...' : 'Kein Inhalt'}
                             </p>
@@ -254,6 +315,9 @@
                         if (currentFilter !== 'all') {
                             results = results.filter(function(doc) { return doc.collectionId === currentFilter; });
                         }
+                        if (showOnlyFavorites) {
+                            results = results.filter(function(doc) { return isFavorite(doc.id); });
+                        }
 
                         renderDocuments(results);
                         return;
@@ -279,6 +343,10 @@
 
             if (currentFilter !== 'all') {
                 filtered = filtered.filter(doc => doc.collectionId === currentFilter);
+            }
+
+            if (showOnlyFavorites) {
+                filtered = filtered.filter(doc => isFavorite(doc.id));
             }
 
             if (searchTerm) {
