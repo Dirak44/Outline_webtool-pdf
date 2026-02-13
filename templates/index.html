@@ -102,15 +102,19 @@
         let allCollections = [];
         let currentFilter = 'all';
         let showEmptyDocs = false;
+        let searchTimer = null;
 
         document.addEventListener('DOMContentLoaded', function() {
             loadCollections();
             loadDocuments();
-            
-            document.getElementById('searchInput').addEventListener('input', filterDocuments);
+
+            document.getElementById('searchInput').addEventListener('input', function() {
+                if (searchTimer) clearTimeout(searchTimer);
+                searchTimer = setTimeout(handleSearch, 400);
+            });
             document.getElementById('showEmptyToggle').addEventListener('change', function() {
                 showEmptyDocs = this.checked;
-                filterDocuments();
+                handleSearch();
             });
         });
 
@@ -211,15 +215,15 @@
 
         function filterByCollection(collectionId) {
             currentFilter = collectionId;
-            
+
             document.querySelectorAll('#collectionFilter button').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.collection === collectionId) {
                     btn.classList.add('active');
                 }
             });
-            
-            filterDocuments();
+
+            handleSearch();
         }
 
         function isDocumentEmpty(doc) {
@@ -231,6 +235,36 @@
             // Nur Whitespace oder sehr kurzer Inhalt (z.B. nur "\n" oder Leerzeichen)
             if (trimmed.replace(/\s+/g, '').length === 0) return true;
             return false;
+        }
+
+        async function handleSearch() {
+            var searchTerm = document.getElementById('searchInput').value.trim();
+
+            if (searchTerm.length >= 2) {
+                // Backend-Volltextsuche ueber Outline API
+                try {
+                    var resp = await fetch('/api/search?q=' + encodeURIComponent(searchTerm));
+                    var data = await resp.json();
+                    if (data.success) {
+                        var results = data.data;
+
+                        if (!showEmptyDocs) {
+                            results = results.filter(function(doc) { return !isDocumentEmpty(doc); });
+                        }
+                        if (currentFilter !== 'all') {
+                            results = results.filter(function(doc) { return doc.collectionId === currentFilter; });
+                        }
+
+                        renderDocuments(results);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Backend-Suche fehlgeschlagen, nutze lokale Filterung:', e);
+                }
+            }
+
+            // Lokale Filterung (kein Suchbegriff oder Fallback)
+            filterDocuments();
         }
 
         function filterDocuments() {

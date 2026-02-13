@@ -192,6 +192,26 @@ async def editor_page(request: Request, doc_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@app.get("/api/search")
+async def search_documents(q: str):
+    """Volltextsuche ueber Outline API"""
+    try:
+        q = q.strip()
+        if not q or len(q) < 2:
+            raise HTTPException(status_code=400, detail="Suchbegriff muss mindestens 2 Zeichen lang sein")
+        logger.info(f"Suche nach: '{q}'")
+        results = outline_client.search_documents(q)
+        # Outline gibt verschachtelte Ergebnisse zurueck: [{document: {...}, ...}]
+        documents = [r.get("document", r) for r in results]
+        logger.info(f"Suche '{q}': {len(documents)} Treffer")
+        return {"success": True, "data": documents}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Fehler bei der Suche: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/image-proxy")
 async def image_proxy(url: str):
     """Proxy fuer Outline-Bilder (benoetigt Auth-Header)"""
