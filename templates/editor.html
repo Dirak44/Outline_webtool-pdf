@@ -86,6 +86,18 @@
 
                     <form id="styleForm">
                         <div class="mb-3">
+                            <label for="fontSelect" class="form-label">
+                                <i class="bi bi-fonts"></i> Schriftart
+                            </label>
+                            <select class="form-select" id="fontSelect" name="font">
+                                <option value="Roboto" selected>Roboto</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Times">Times New Roman</option>
+                                <option value="Courier">Courier</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="fontsizeSelect" class="form-label">
                                 <i class="bi bi-type"></i> Schriftgroesse
                             </label>
@@ -394,6 +406,7 @@
 
                 // Style-Optionen auslesen
                 var fontSize = parseInt(document.getElementById('fontsizeSelect').value);
+                var fontFamily = document.getElementById('fontSelect').value;
                 var marginPt = parseFloat(document.getElementById('marginSelect').value);
                 var showToc = document.getElementById('tocToggle').checked;
                 var showFooter = document.getElementById('footerToggle').checked;
@@ -524,7 +537,8 @@
                     footer: footerFn,
                     content: content,
                     defaultStyle: {
-                        fontSize: fontSize
+                        fontSize: fontSize,
+                        font: fontFamily
                     },
                     styles: {
                         tocTitle: {
@@ -638,6 +652,7 @@
             var tpl = allTemplates.find(function(t) { return t.id === templateId; });
             if (!tpl) return;
             activeTemplateId = templateId;
+            document.getElementById('fontSelect').value = tpl.font || 'Roboto';
             document.getElementById('fontsizeSelect').value = tpl.fontsize;
             document.getElementById('marginSelect').value = tpl.margin;
             renderTemplates();
@@ -654,7 +669,7 @@
                     body: JSON.stringify({
                         name: name.trim(),
                         icon: 'bi-bookmark-star',
-                        font: 'Roboto',
+                        font: document.getElementById('fontSelect').value,
                         fontsize: document.getElementById('fontsizeSelect').value,
                         margin: document.getElementById('marginSelect').value
                     })
@@ -711,6 +726,7 @@
             document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
 
             // Alle Steuerelemente: bei Aenderung PDF neu generieren
+            document.getElementById('fontSelect').addEventListener('change', scheduleRegenerate);
             document.getElementById('fontsizeSelect').addEventListener('change', scheduleRegenerate);
             document.getElementById('marginSelect').addEventListener('change', scheduleRegenerate);
             document.getElementById('tocToggle').addEventListener('change', scheduleRegenerate);
