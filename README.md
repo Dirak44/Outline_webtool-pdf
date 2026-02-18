@@ -29,7 +29,7 @@ Die PDFs werden vollständig im Browser generiert – kein LaTeX oder Pandoc nö
 Lade nur diese eine Datei auf deinen Server:
 
 ```bash
-curl -O https://raw.githubusercontent.com/XxDirakxX/outline-pdf/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Dirak44/outline-pdf/main/docker-compose.yml
 ```
 
 Oder erstelle sie manuell mit folgendem Inhalt:
@@ -37,7 +37,7 @@ Oder erstelle sie manuell mit folgendem Inhalt:
 ```yaml
 services:
   outline-pdf:
-    image: ghcr.io/xxdirakxx/outline-pdf:latest
+    image: ghcr.io/dirak44/outline-pdf:latest
     container_name: outline-pdf
     restart: unless-stopped
     ports:
@@ -99,7 +99,7 @@ docker compose pull && docker compose up -d
 
 ```bash
 # Repository klonen
-git clone https://github.com/XxDirakxX/outline-pdf.git
+git clone https://github.com/Dirak44/outline-pdf.git
 cd outline-pdf
 
 # Abhängigkeiten installieren
@@ -158,7 +158,7 @@ services:
   # ... deine bestehenden Services (outline, postgres, redis etc.) ...
 
   outline-pdf:
-    image: ghcr.io/xxdirakxx/outline-pdf:latest
+    image: ghcr.io/dirak44/outline-pdf:latest
     container_name: outline-pdf
     restart: unless-stopped
     ports:

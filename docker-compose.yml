@@ -1,6 +1,6 @@
 services:
   outline-pdf:
-    image: ghcr.io/xxdirakxx/outline-pdf:latest
+    image: ghcr.io/dirak44/outline-pdf:latest
 
     container_name: outline-pdf
 
