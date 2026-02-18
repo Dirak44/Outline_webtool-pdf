@@ -1,0 +1,44 @@
+services:
+  outline-pdf:
+    build: .
+    # Alternativ: vorgefertigtes Image verwenden (wenn gepusht)
+    # image: ghcr.io/dein-user/outline-pdf:latest
+
+    container_name: outline-pdf
+
+    restart: unless-stopped
+
+    ports:
+      # HOST_PORT:CONTAINER_PORT
+      # Auf dem Host erreichbar unter http://server-ip:8080
+      - "8080:8000"
+
+    environment:
+      # Outline API-Konfiguration (Pflicht)
+      OUTLINE_URL: "https://deine-outline-instanz.example.com"
+      OUTLINE_API_TOKEN: "ol_api_DEIN_TOKEN_HIER"
+
+      # Optional: Custom-Vorlagen beim Start zurücksetzen (Standard: false)
+      RESET_TEMPLATES_ON_START: "false"
+
+      # Port innerhalb des Containers (Standard: 8000, normalerweise nicht ändern)
+      # PORT: "8000"
+
+    volumes:
+      # Vorlagen persistent speichern (data/templates.json)
+      - outline-pdf-data:/app/data
+
+    # Wenn Outline im selben Docker-Netzwerk läuft, hier eintragen:
+    # networks:
+    #   - outline_default  # Name des Outline Docker-Netzwerks anpassen
+
+volumes:
+  outline-pdf-data:
+
+# Wenn du Outline im selben Docker-Compose-Projekt hast, kannst du das
+# Netzwerk direkt einbinden statt einen externen Volume zu nutzen:
+#
+# networks:
+#   outline_default:
+#     external: true
+#     name: outline_default  # docker network ls → richtigen Namen prüfen

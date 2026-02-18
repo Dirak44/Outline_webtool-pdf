@@ -351,5 +351,7 @@ if __name__ == "__main__":
         import sys
         sys.exit(1)
 
-    logger.info("Server startet auf http://127.0.0.1:8000")
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", 8000))
+    logger.info(f"Server startet auf http://{host}:{port}")
+    uvicorn.run("app:app", host=host, port=port, reload=False)

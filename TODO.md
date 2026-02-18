@@ -25,5 +25,7 @@
 - [x] Favoriten-System fuer Dokumente (localStorage, Stern-Button, Filter)
 - [x] Batch-Export: Mehrere Dokumente als ZIP (Checkboxen, Fortschrittsbalken, JSZip)
 
+- [x] Docker-Support: Dockerfile, docker-compose.yml, .dockerignore (PORT/HOST per ENV konfigurierbar)
+
 ## Offen
 - (keine offenen Tasks)
