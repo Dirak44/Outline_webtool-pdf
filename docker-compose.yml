@@ -1,8 +1,6 @@
 services:
   outline-pdf:
-    build: .
-    # Alternativ: vorgefertigtes Image verwenden (wenn gepusht)
-    # image: ghcr.io/dein-user/outline-pdf:latest
+    image: ghcr.io/xxdirakxx/outline-pdf:latest
 
     container_name: outline-pdf
 
